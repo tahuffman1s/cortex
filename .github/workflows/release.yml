@@ -1,7 +1,8 @@
 name: Release
 
-# Push an annotated tag like v0.1.0 (its message becomes the release notes)
-# to publish a GitHub release with the source tarball.
+# Push a tag like v0.1.0 (or make one with "Draft a new release" on GitHub)
+# to publish a release with the source tarball and checksum, and
+# release-notes/<tag>.md as its notes.
 on:
   push:
     tags: ["v*"]
@@ -16,9 +17,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Fetch the annotated tag
-        # checkout leaves a lightweight copy of the tag, without its message
-        run: git fetch --force origin "refs/tags/$GITHUB_REF_NAME:refs/tags/$GITHUB_REF_NAME"
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -32,16 +30,15 @@ jobs:
           metainfo="$(grep -o -m1 '<release version="[^"]*"' data/io.github.tahuffman1s.Cortex.metainfo.xml | cut -d'"' -f2)"
           echo "tag $GITHUB_REF_NAME, meson $version, app $app, metainfo $metainfo"
           test "$GITHUB_REF_NAME" = "v$version" && test "$app" = "$version" && test "$metainfo" = "$version"
+          test -s "release-notes/$GITHUB_REF_NAME.md"
           echo "VERSION=$version" >> "$GITHUB_ENV"
       - name: Build and test the tarball
         # (meson dist writes the .sha256sum next to it)
         run: meson dist -C build --formats xztar
-      - name: Release notes
-        run: git tag -l --format='%(contents)' "$GITHUB_REF_NAME" > notes.md
       - uses: softprops/action-gh-release@v2
         with:
           name: Cortex ${{ env.VERSION }}
-          body_path: notes.md
+          body_path: release-notes/${{ github.ref_name }}.md
           files: |
             build/meson-dist/cortex-${{ env.VERSION }}.tar.xz
             build/meson-dist/cortex-${{ env.VERSION }}.tar.xz.sha256sum
