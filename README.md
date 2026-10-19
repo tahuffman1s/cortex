@@ -98,6 +98,11 @@ The modules:
 - `desktop.py`: autostart and sidebar bookmarks
 - `window.py`, `dialogs.py`, `application.py`: the app
 
+To release, bump the version in `meson.build`, `src/cortex/application.py` and the
+metainfo's `<releases>`, then push an annotated tag, `git tag -a v0.2.0` (its message
+becomes the release notes). The Release workflow checks that the versions agree, builds
+and tests the tarball with `meson dist`, and publishes it.
+
 Cortex grew out of the network drive page of a NixOS config tool, rebuilt so it doesn't
 depend on NixOS or a particular desktop.
 

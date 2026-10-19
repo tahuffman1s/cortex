@@ -1,0 +1,47 @@
+name: Release
+
+# Push an annotated tag like v0.1.0 (its message becomes the release notes)
+# to publish a GitHub release with the source tarball.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fetch the annotated tag
+        # checkout leaves a lightweight copy of the tag, without its message
+        run: git fetch --force origin "refs/tags/$GITHUB_REF_NAME:refs/tags/$GITHUB_REF_NAME"
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends meson python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 \
+            gir1.2-secret-1 desktop-file-utils appstream
+      - name: Check the version
+        run: |
+          meson setup build
+          version="$(meson introspect --projectinfo build | python3 -c 'import json, sys; print(json.load(sys.stdin)["version"])')"
+          app="$(sed -n 's/^VERSION = "\(.*\)"$/\1/p' src/cortex/application.py)"
+          metainfo="$(grep -o -m1 '<release version="[^"]*"' data/io.github.tahuffman1s.Cortex.metainfo.xml | cut -d'"' -f2)"
+          echo "tag $GITHUB_REF_NAME, meson $version, app $app, metainfo $metainfo"
+          test "$GITHUB_REF_NAME" = "v$version" && test "$app" = "$version" && test "$metainfo" = "$version"
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+      - name: Build and test the tarball
+        # (meson dist writes the .sha256sum next to it)
+        run: meson dist -C build --formats xztar
+      - name: Release notes
+        run: git tag -l --format='%(contents)' "$GITHUB_REF_NAME" > notes.md
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: Cortex ${{ env.VERSION }}
+          body_path: notes.md
+          files: |
+            build/meson-dist/cortex-${{ env.VERSION }}.tar.xz
+            build/meson-dist/cortex-${{ env.VERSION }}.tar.xz.sha256sum
