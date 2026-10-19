@@ -5,7 +5,7 @@
 # (2.39) does.
 #
 #   sudo apt-get install meson python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 gir1.2-secret-1 \
-#     gvfs librsvg2-common adwaita-icon-theme libglib2.0-bin desktop-file-utils file
+#     gvfs librsvg2-common adwaita-icon-theme libglib2.0-bin desktop-file-utils file patchelf shared-mime-info
 #   build-aux/appimage/build.sh [OUTDIR]
 set -euo pipefail
 
@@ -72,6 +72,10 @@ mkdir -p "$appdir/usr/share/glib-2.0/schemas" "$appdir/usr/share/icons/hicolor"
 cp /usr/share/glib-2.0/schemas/org.gtk.gtk4.*.gschema.xml "$appdir/usr/share/glib-2.0/schemas/"
 glib-compile-schemas "$appdir/usr/share/glib-2.0/schemas"
 cp -a /usr/share/icons/Adwaita "$appdir/usr/share/icons/"
+# gdk-pixbuf picks the SVG loader by MIME type: bring the database, in case
+# the system's isn't on XDG_DATA_DIRS (just the compiled files, not the XML)
+mkdir -p "$appdir/usr/share/mime"
+find /usr/share/mime -maxdepth 1 -type f -exec cp {} "$appdir/usr/share/mime/" \;
 cp /usr/share/icons/hicolor/index.theme "$appdir/usr/share/icons/hicolor/"
 
 # The libraries all that needs (not glibc, GL, fonts: those come from the host)
@@ -89,6 +93,35 @@ done
   --desktop-file "$appdir/usr/share/applications/$app_id.desktop" \
   --icon-file "$appdir/usr/share/icons/hicolor/scalable/apps/$app_id.svg" \
   --custom-apprun "$here/AppRun" >/dev/null
+
+# linuxdeploy leaves out libraries it expects every system to have (expat,
+# zlib, fontconfig, X11...), but NixOS (with nix-ld) and other minimal systems
+# don't have them where the loader looks. Bundle all but the ones that must be
+# the system's own: glibc, the C++ runtime (the GL drivers need the system's)
+# and the GL dispatch libraries (which GTK only dlopens).
+system_only='^(ld-linux-x86-64\.so\.2|libc\.so\.6|libm\.so\.6|libdl\.so\.2|libpthread\.so\.0|librt\.so\.1|libresolv\.so\.2|libutil\.so\.1|libanl\.so\.1|libstdc\+\+\.so\.6|libgcc_s\.so\.1|lib(GL|EGL|GLX|GLdispatch|OpenGL|GLESv2)\.so\..*)$'
+elf_deps() {  # "name path" for every library the bundle's programs and libraries load
+  find "$appdir" -type f \( -name '*.so*' -o -path '*/usr/bin/python3' \) -exec ldd {} + 2>/dev/null \
+    | awk '$2 == "=>" {print $1, $3}' | sort -u
+}
+while :; do
+  added=0
+  while read -r name path; do
+    if [[ "$name" =~ $system_only || "$path" == "$appdir"/* || -e "$appdir/usr/lib/$name" ]]; then
+      continue
+    fi
+    cp -L "$path" "$appdir/usr/lib/$name"
+    chmod u+w "$appdir/usr/lib/$name"
+    patchelf --set-rpath '$ORIGIN' "$appdir/usr/lib/$name"
+    added=1
+  done < <(elf_deps)
+  [ "$added" = 1 ] || break
+done
+left="$(elf_deps | awk -v appdir="$appdir/" 'index($2, appdir) != 1 {print $1}' | grep -vE "$system_only" || true)"
+if [ -n "$left" ]; then
+  echo "libraries neither bundled nor the system's own:" $left >&2
+  exit 1
+fi
 
 ARCH=x86_64 VERSION="$version" "$work/appimagetool" --no-appstream --runtime-file "$work/runtime" \
   "$appdir" "$out/Cortex-$version-x86_64.AppImage" >/dev/null

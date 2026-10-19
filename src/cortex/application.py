@@ -5,7 +5,7 @@ from gi.repository import Adw, Gio, GLib, Gtk
 from . import desktop, drives, gvfs, smb
 from .account import Account
 
-VERSION = "0.1.1"
+VERSION = "0.1.2"
 
 
 class Application(Adw.Application):

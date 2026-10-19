@@ -48,11 +48,13 @@ chmod +x Cortex-*-x86_64.AppImage
 ./Cortex-*-x86_64.AppImage
 ```
 
-It carries its own Python, PyGObject, GTK 4, libadwaita and libsecret, and uses the
-system's GVfs, keyring, fonts and graphics drivers. It needs glibc 2.39 or newer
+It carries its own Python, PyGObject, GTK 4, libadwaita, libsecret and every library
+they need, and takes only glibc, the C++ runtime and the graphics drivers from the system,
+along with its GVfs daemons, keyring and fonts. It needs glibc 2.39 or newer
 (Ubuntu 24.04, Debian 13, Fedora 40 and later, Arch, openSUSE Tumbleweed) and GVfs's SMB
 support: `gvfs-backends` on Debian and Ubuntu, `gvfs-smb` on Fedora and Arch,
-`services.gvfs.enable = true;` on NixOS (which runs AppImages with `appimage-run`).
+`services.gvfs.enable = true;` on NixOS, which also needs `programs.nix-ld.enable = true;`
+(or `appimage-run`) for AppImages.
 Apps Cortex starts, like the file manager, get the system's own libraries back.
 
 To build one (on Ubuntu 24.04, with the packages listed at the top of the script):

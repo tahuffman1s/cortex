@@ -77,7 +77,7 @@ class Window(Adw.ApplicationWindow):
 
         self.smb_banner = Adw.Banner(
             title="This system can't open Windows shares yet: install GVfs's SMB support "
-                  "(gvfs-smb or gvfs-backends)", revealed=not gvfs.smb_supported())
+                  "(gvfs-smb or gvfs-backends; on NixOS, services.gvfs.enable)", revealed=not gvfs.smb_supported())
 
         empty = Adw.StatusPage(icon_name="folder-remote-symbolic", title="No Network Drives",
                                description="Find the shares on your network's file servers, "

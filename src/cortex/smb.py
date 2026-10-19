@@ -101,7 +101,7 @@ def describe_failure(message, server="", refused=False, no_account=False, missin
     where = server or "the server"
     if missing_smb:
         return ("This system can't open Windows shares yet: install GVfs's SMB support "
-                "(the gvfs-smb or gvfs-backends package) and sign out and in again")
+                "(the gvfs-smb or gvfs-backends package; on NixOS, services.gvfs.enable) and sign out and in again")
     if refused:
         return f"{where} refused the sign-in: check the user name and password under Sign-in"
     if no_account:

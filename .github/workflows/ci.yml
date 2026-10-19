@@ -30,7 +30,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends meson python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 \
-            gir1.2-secret-1 desktop-file-utils gvfs librsvg2-common adwaita-icon-theme libglib2.0-bin file
+            gir1.2-secret-1 desktop-file-utils gvfs librsvg2-common adwaita-icon-theme libglib2.0-bin file patchelf shared-mime-info
       - name: Build the AppImage
         run: build-aux/appimage/build.sh dist
       - name: Start it

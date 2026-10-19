@@ -33,6 +33,11 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="0.1.2" date="2026-10-19">
+      <description>
+        <p>The AppImage now starts on systems without the usual shared libraries where the loader looks, such as NixOS with nix-ld.</p>
+      </description>
+    </release>
     <release version="0.1.1" date="2026-10-19">
       <description>
         <p>Cortex is now released as an AppImage, which runs on any distribution with glibc 2.39 or newer. The Flatpak manifest is gone.</p>
