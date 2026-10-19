@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Cortex
+GenericName=Network Drives
+Comment=Find the shares on your network's file servers and keep them as network drives
+Exec=cortex
+Icon=io.github.tahuffman1s.Cortex
+Terminal=false
+Categories=GTK;GNOME;Network;FileTools;
+Keywords=smb;samba;cifs;windows;share;network;drive;nas;file server;dfs;
+StartupNotify=true

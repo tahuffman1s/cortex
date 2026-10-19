@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.tahuffman1s.Cortex</id>
+  <name>Cortex</name>
+  <summary>Find network shares and keep them as drives</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <developer id="io.github.tahuffman1s">
+    <name>tahuffman1s</name>
+  </developer>
+  <description>
+    <p>
+      Cortex finds the Windows (SMB) shares on your network's file servers and keeps the ones you
+      use as network drives, on any Linux desktop.
+    </p>
+    <ul>
+      <li>Suggests servers: the ones your drives are on, your network's (or VPN's) DNS domains and the file servers announced on the local network</li>
+      <li>Lists a server's shares, hidden ones included, or a domain's DFS folders</li>
+      <li>Signs in with one account kept in your keyring, or a Kerberos ticket, and tries a new password once before saving it, so a typo can't lock your account</li>
+      <li>Connects drives on demand or at login, and adds them to the file manager sidebar</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">io.github.tahuffman1s.Cortex.desktop</launchable>
+  <url type="homepage">https://github.com/tahuffman1s/cortex</url>
+  <url type="bugtracker">https://github.com/tahuffman1s/cortex/issues</url>
+  <content_rating type="oars-1.1"/>
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+    <control>touch</control>
+  </supports>
+  <releases>
+    <release version="0.1.0" date="2026-10-19">
+      <description>
+        <p>First release: finding servers and shares, saved drives, sign-in, connecting at login.</p>
+      </description>
+    </release>
+  </releases>
+</component>

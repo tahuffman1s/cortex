@@ -1,0 +1,29 @@
+{
+  "id": "io.github.tahuffman1s.Cortex",
+  "runtime": "org.gnome.Platform",
+  "runtime-version": "50",
+  "sdk": "org.gnome.Sdk",
+  "command": "cortex",
+  "finish-args": [
+    "--share=network",
+    "--share=ipc",
+    "--socket=wayland",
+    "--socket=fallback-x11",
+    "--device=dri",
+    "--talk-name=org.gtk.vfs.*",
+    "--filesystem=xdg-run/gvfs",
+    "--filesystem=xdg-run/gvfsd",
+    "--filesystem=xdg-config/gtk-3.0",
+    "--system-talk-name=org.freedesktop.resolve1"
+  ],
+  "cleanup": ["/include", "/lib/pkgconfig", "*.la"],
+  "modules": [
+    {
+      "name": "cortex",
+      "buildsystem": "meson",
+      "builddir": true,
+      "config-opts": ["-Dbuildtype=release"],
+      "sources": [{ "type": "dir", "path": "../.." }]
+    }
+  ]
+}

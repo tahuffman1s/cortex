@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends meson python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 \
+            gir1.2-secret-1 desktop-file-utils appstream
+      - name: Build, install and test
+        run: |
+          meson setup build --prefix="$PWD/install"
+          meson test -C build --print-errorlogs
+          meson install -C build
+          python3 -c "import compileall, sys; sys.exit(not compileall.compile_dir('src', quiet=1))"
+          ./install/bin/cortex --version
