@@ -1,0 +1,35 @@
+#!/bin/sh
+# Cortex's AppImage: the bundled Python, PyGObject, GTK 4 and libadwaita, with
+# the host's GVfs daemons, keyring, fonts and graphics drivers. Cortex hands
+# the host's values of what is set here back to the apps it starts (the file
+# manager), so they don't load these libraries (desktop.launch_context).
+HERE="$(dirname "$(readlink -f "$0")")"
+
+for name in PYTHONHOME PYTHONPATH PYTHONNOUSERSITE GI_TYPELIB_PATH GIO_MODULE_DIR GTK_EXE_PREFIX \
+            GDK_PIXBUF_MODULE_FILE GSETTINGS_BACKEND XDG_DATA_DIRS; do
+  if eval "[ -n \"\${$name+set}\" ]"; then
+    eval "export CORTEX_HOST_$name=\"\$$name\""
+  fi
+done
+export CORTEX_APPDIR="$HERE"
+
+export PYTHONHOME="$HERE/usr" PYTHONPATH="$HERE/usr/share/cortex" PYTHONNOUSERSITE=1
+export GI_TYPELIB_PATH="$HERE/usr/lib/girepository-1.0"
+export GIO_MODULE_DIR="$HERE/usr/lib/gio/modules"
+# GTK looks for media, input method and print modules under here, not among
+# the host's (built for the host's GTK)
+export GTK_EXE_PREFIX="$HERE/usr"
+# no dconf module is bundled: GTK's few settings (the emoji chooser's recent
+# list) needn't outlive a run
+export GSETTINGS_BACKEND=memory
+export XDG_DATA_DIRS="$HERE/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+
+# The pixbuf loaders' cache names them by absolute path: write one for where
+# this AppImage is mounted now.
+cache="${XDG_RUNTIME_DIR:-/tmp}/cortex-appimage-$(id -u)"
+mkdir -p "$cache"
+sed "s|@APPDIR@|$HERE|g" "$HERE/usr/lib/gdk-pixbuf/loaders.cache" > "$cache/loaders.cache.$$"
+mv -f "$cache/loaders.cache.$$" "$cache/loaders.cache"
+export GDK_PIXBUF_MODULE_FILE="$cache/loaders.cache"
+
+exec "$HERE/usr/bin/python3" -m cortex "$@"

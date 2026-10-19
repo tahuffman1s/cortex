@@ -5,7 +5,7 @@ from gi.repository import Adw, Gio, GLib, Gtk
 from . import desktop, drives, gvfs, smb
 from .account import Account
 
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 
 
 class Application(Adw.Application):
@@ -87,4 +87,5 @@ class Application(Adw.Application):
 
 
 def main():
+    GLib.set_prgname(desktop.APP_ID)  # what window lists match to the desktop entry
     return Application().run(sys.argv)

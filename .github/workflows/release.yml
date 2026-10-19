@@ -1,7 +1,7 @@
 name: Release
 
-# Publishes a release with the source tarball and checksum, and
-# release-notes/<tag>.md as its notes. Either push a tag like v0.1.0 (or make
+# Publishes a release with the AppImage, the source tarball, their checksums,
+# and release-notes/<tag>.md as its notes. Either push a tag like v0.1.0 (or make
 # one with "Draft a new release" on GitHub), or run this workflow by hand on a
 # branch: it then tags that commit v<the version in meson.build> itself.
 on:
@@ -23,7 +23,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends meson python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 \
-            gir1.2-secret-1 desktop-file-utils appstream
+            gir1.2-secret-1 desktop-file-utils appstream gvfs librsvg2-common adwaita-icon-theme libglib2.0-bin file
       - name: Check the version
         run: |
           tag="$GITHUB_REF_NAME"
@@ -47,6 +47,12 @@ jobs:
       - name: Build and test the tarball
         # (meson dist writes the .sha256sum next to it)
         run: meson dist -C build --formats xztar
+      - name: Build the AppImage
+        run: |
+          build-aux/appimage/build.sh dist
+          cd dist
+          APPIMAGE_EXTRACT_AND_RUN=1 "./Cortex-$VERSION-x86_64.AppImage" --version
+          sha256sum "Cortex-$VERSION-x86_64.AppImage" > "Cortex-$VERSION-x86_64.AppImage.sha256sum"
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG }}
@@ -54,5 +60,7 @@ jobs:
           name: Cortex ${{ env.VERSION }}
           body_path: release-notes/${{ env.TAG }}.md
           files: |
+            dist/Cortex-${{ env.VERSION }}-x86_64.AppImage
+            dist/Cortex-${{ env.VERSION }}-x86_64.AppImage.sha256sum
             build/meson-dist/cortex-${{ env.VERSION }}.tar.xz
             build/meson-dist/cortex-${{ env.VERSION }}.tar.xz.sha256sum

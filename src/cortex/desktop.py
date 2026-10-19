@@ -1,28 +1,26 @@
-"""The desktop-generic bits: connecting at login through XDG autostart (or
-the Background portal inside Flatpak), and file manager sidebar entries
-through GTK bookmarks, which Files, Nemo, Caja, Thunar and every GTK file
-chooser read."""
+"""The desktop-generic bits: connecting at login through XDG autostart,
+file manager sidebar entries through GTK bookmarks (which Files, Nemo, Caja,
+Thunar and every GTK file chooser read), and starting other apps."""
 
 import os
 import shutil
 import sys
 from pathlib import Path
 
-from gi.repository import Gio, GLib
+from gi.repository import GLib
 
 APP_ID = "io.github.tahuffman1s.Cortex"
-IN_FLATPAK = os.path.exists("/.flatpak-info")
 
-
-def host_config_dir():
-    # inside Flatpak XDG_CONFIG_HOME is the app's own; xdg-config/... is the host's
-    return Path.home() / ".config" if IN_FLATPAK else Path(GLib.get_user_config_dir())
+# The AppImage's AppRun points these at its bundled Python, typelibs and GIO
+# modules, keeping the host's values as CORTEX_HOST_<name> (unset: wasn't set).
+BUNDLE_VARIABLES = ["PYTHONHOME", "PYTHONPATH", "PYTHONNOUSERSITE", "GI_TYPELIB_PATH", "GIO_MODULE_DIR",
+                    "GTK_EXE_PREFIX", "GDK_PIXBUF_MODULE_FILE", "GSETTINGS_BACKEND", "XDG_DATA_DIRS"]
 
 
 def command():
     """How the autostart entry starts Cortex."""
-    if IN_FLATPAK:
-        return ["cortex"]
+    if os.environ.get("APPIMAGE"):
+        return [os.environ["APPIMAGE"]]
     found = shutil.which("cortex")
     if found:
         return [found]
@@ -31,14 +29,11 @@ def command():
     return ["env", f"PYTHONPATH={src}", sys.executable, "-m", "cortex"]
 
 
-AUTOSTART = host_config_dir() / "autostart" / f"{APP_ID}.desktop"
+AUTOSTART = Path(GLib.get_user_config_dir()) / "autostart" / f"{APP_ID}.desktop"
 
 
 def set_autostart(enabled):
     """Run `cortex --connect` at login: it connects the drives marked so and quits."""
-    if IN_FLATPAK:
-        request_background(enabled)
-        return
     if not enabled:
         AUTOSTART.unlink(missing_ok=True)
         return
@@ -55,26 +50,26 @@ def set_autostart(enabled):
         "X-GNOME-Autostart-Delay=5\n")
 
 
-def request_background(enabled):
-    try:
-        bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
-        options = {
-            "reason": GLib.Variant("s", "Connect your network drives when you sign in"),
-            "autostart": GLib.Variant("b", enabled),
-            "commandline": GLib.Variant("as", ["cortex", "--connect"]),
-            "dbus-activatable": GLib.Variant("b", False),
-        }
-        bus.call("org.freedesktop.portal.Desktop", "/org/freedesktop/portal/desktop",
-                 "org.freedesktop.portal.Background", "RequestBackground",
-                 GLib.Variant("(sa{sv})", ("", options)), None, Gio.DBusCallFlags.NONE, -1, None, None)
-    except GLib.Error:
-        pass
+def launch_context(display):
+    """A launch context for starting the file manager and such: inside the
+    AppImage, with the host's environment back, so they don't load Cortex's
+    bundled libraries."""
+    context = display.get_app_launch_context()
+    if os.environ.get("CORTEX_APPDIR"):
+        for name in BUNDLE_VARIABLES:
+            host = os.environ.get(f"CORTEX_HOST_{name}")
+            if host is None:
+                context.unsetenv(name)
+            else:
+                context.setenv(name, host)
+        context.unsetenv("CORTEX_APPDIR")
+    return context
 
 
 # ---------------------------------------------------------------------------
 # GTK bookmarks: "URI label" lines
 
-BOOKMARKS = host_config_dir() / "gtk-3.0" / "bookmarks"
+BOOKMARKS = Path(GLib.get_user_config_dir()) / "gtk-3.0" / "bookmarks"
 
 
 def _bookmark_lines():

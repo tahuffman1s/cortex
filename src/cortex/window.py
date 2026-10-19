@@ -54,6 +54,11 @@ class Window(Adw.ApplicationWindow):
             monitor.connect(signal, lambda *_: self.refresh())
         self.account.load_password(self.refresh)
         self.refresh()
+        try:
+            # rewritten each time: an AppImage may have moved since
+            desktop.set_autostart(any(d["login"] for d in self.drives))
+        except OSError:
+            pass
 
     # -- the drives page
 
@@ -218,13 +223,13 @@ class Window(Adw.ApplicationWindow):
             self.connect_drive(d, then=lambda: self.open_drive(d))
             return
 
-        def launched(launcher, result):
+        def launched(_source, result):
             try:
-                launcher.launch_finish(result)
+                Gio.AppInfo.launch_default_for_uri_finish(result)
             except GLib.Error as e:
-                if not e.matches(Gtk.dialog_error_quark(), Gtk.DialogError.DISMISSED):
-                    self.toast(f"Could not open {d['name']}: {e.message}")
-        Gtk.FileLauncher.new(Gio.File.new_for_uri(smb.smb_uri(d["path"]))).launch(self, None, launched)
+                self.toast(f"Could not open {d['name']}: {e.message}")
+        Gio.AppInfo.launch_default_for_uri_async(smb.smb_uri(d["path"]), desktop.launch_context(self.get_display()),
+                                                 None, launched)
 
     # -- changing the list
 

@@ -21,3 +21,21 @@ jobs:
           meson install -C build
           python3 -c "import compileall, sys; sys.exit(not compileall.compile_dir('src', quiet=1))"
           ./install/bin/cortex --version
+
+  appimage:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends meson python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 \
+            gir1.2-secret-1 desktop-file-utils gvfs librsvg2-common adwaita-icon-theme libglib2.0-bin file
+      - name: Build the AppImage
+        run: build-aux/appimage/build.sh dist
+      - name: Start it
+        run: APPIMAGE_EXTRACT_AND_RUN=1 dist/Cortex-*-x86_64.AppImage --version
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Cortex-AppImage
+          path: dist/*.AppImage

@@ -28,7 +28,7 @@ the file manager like any other server and needs no setup. Programs that don't u
 | Drives | `~/.config/cortex/drives.json` |
 | Account (user name, domain) | `~/.config/cortex/account.json` |
 | Password | the keyring, as "Cortex network drive sign-in" |
-| Connect at login | `~/.config/autostart/io.github.tahuffman1s.Cortex.desktop` (Flatpak: the Background portal), which runs `cortex --connect` |
+| Connect at login | `~/.config/autostart/io.github.tahuffman1s.Cortex.desktop`, which runs `cortex --connect` (from the AppImage: the AppImage file, rewritten whenever Cortex opens in case it moved) |
 | Sidebar entries | GTK bookmarks (`~/.config/gtk-3.0/bookmarks`), read by Files, Nemo, Caja, Thunar and GTK file choosers |
 
 When GVfs connects with the saved account, it also remembers the password itself, so the
@@ -36,7 +36,32 @@ file manager can open a drive from the sidebar without asking. When you change o
 sign-in, Cortex clears what GVfs remembered for your drives' servers, so the old password
 isn't tried again.
 
-## Requirements
+## Install
+
+### AppImage
+
+Download `Cortex-<version>-x86_64.AppImage` from the
+[releases](https://github.com/tahuffman1s/cortex/releases), then:
+
+```sh
+chmod +x Cortex-*-x86_64.AppImage
+./Cortex-*-x86_64.AppImage
+```
+
+It carries its own Python, PyGObject, GTK 4, libadwaita and libsecret, and uses the
+system's GVfs, keyring, fonts and graphics drivers. It needs glibc 2.39 or newer
+(Ubuntu 24.04, Debian 13, Fedora 40 and later, Arch, openSUSE Tumbleweed) and GVfs's SMB
+support: `gvfs-backends` on Debian and Ubuntu, `gvfs-smb` on Fedora and Arch,
+`services.gvfs.enable = true;` on NixOS (which runs AppImages with `appimage-run`).
+Apps Cortex starts, like the file manager, get the system's own libraries back.
+
+To build one (on Ubuntu 24.04, with the packages listed at the top of the script):
+
+```sh
+build-aux/appimage/build.sh dist
+```
+
+### From source
 
 Python 3.10+, PyGObject, GTK 4, libadwaita 1.5+, GVfs with its SMB backend, and
 optionally libsecret (without it, the password is only kept until Cortex quits).
@@ -51,21 +76,12 @@ optionally libsecret (without it, the password is only kept until Cortex quits).
 GNOME, Cinnamon, MATE, Xfce and Budgie ship GVfs already. On KDE Plasma, install the GVfs
 SMB package as well. Dolphin then opens the drives through its own SMB support.
 
-## Install
-
 With Meson:
 
 ```sh
 meson setup build --prefix=/usr/local
 meson test -C build
 sudo meson install -C build
-```
-
-As a Flatpak:
-
-```sh
-flatpak-builder --user --install --force-clean build-flatpak build-aux/flatpak/io.github.tahuffman1s.Cortex.json
-flatpak run io.github.tahuffman1s.Cortex
 ```
 
 From the source tree, without installing:
@@ -102,8 +118,8 @@ To release, bump the version in `meson.build`, `src/cortex/application.py` and t
 metainfo's `<releases>`, write `release-notes/v0.2.0.md`, then push a `v0.2.0` tag (or
 create it with "Draft a new release" on GitHub), or run the Release workflow on `main`
 from the Actions tab, which makes the tag itself. The Release workflow checks that the
-versions and notes are there, builds and tests the tarball with `meson dist`, and
-publishes it.
+versions and notes are there, builds and tests the tarball with `meson dist`, builds the
+AppImage, and publishes both.
 
 Cortex grew out of the network drive page of a NixOS config tool, rebuilt so it doesn't
 depend on NixOS or a particular desktop.
