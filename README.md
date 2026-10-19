@@ -100,7 +100,8 @@ The modules:
 
 To release, bump the version in `meson.build`, `src/cortex/application.py` and the
 metainfo's `<releases>`, write `release-notes/v0.2.0.md`, then push a `v0.2.0` tag (or
-create it with "Draft a new release" on GitHub). The Release workflow checks that the
+create it with "Draft a new release" on GitHub), or run the Release workflow on `main`
+from the Actions tab, which makes the tag itself. The Release workflow checks that the
 versions and notes are there, builds and tests the tarball with `meson dist`, and
 publishes it.
 

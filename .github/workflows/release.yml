@@ -1,11 +1,13 @@
 name: Release
 
-# Push a tag like v0.1.0 (or make one with "Draft a new release" on GitHub)
-# to publish a release with the source tarball and checksum, and
-# release-notes/<tag>.md as its notes.
+# Publishes a release with the source tarball and checksum, and
+# release-notes/<tag>.md as its notes. Either push a tag like v0.1.0 (or make
+# one with "Draft a new release" on GitHub), or run this workflow by hand on a
+# branch: it then tags that commit v<the version in meson.build> itself.
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -24,21 +26,33 @@ jobs:
             gir1.2-secret-1 desktop-file-utils appstream
       - name: Check the version
         run: |
+          tag="$GITHUB_REF_NAME"
           meson setup build
           version="$(meson introspect --projectinfo build | python3 -c 'import json, sys; print(json.load(sys.stdin)["version"])')"
           app="$(sed -n 's/^VERSION = "\(.*\)"$/\1/p' src/cortex/application.py)"
           metainfo="$(grep -o -m1 '<release version="[^"]*"' data/io.github.tahuffman1s.Cortex.metainfo.xml | cut -d'"' -f2)"
-          echo "tag $GITHUB_REF_NAME, meson $version, app $app, metainfo $metainfo"
-          test "$GITHUB_REF_NAME" = "v$version" && test "$app" = "$version" && test "$metainfo" = "$version"
-          test -s "release-notes/$GITHUB_REF_NAME.md"
+          if [ "$GITHUB_REF_TYPE" != tag ]; then
+            # run by hand: the tag is made from the version, and must be new
+            tag="v$version"
+            if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+              echo "$tag already exists: bump the version first" >&2
+              exit 1
+            fi
+          fi
+          echo "tag $tag, meson $version, app $app, metainfo $metainfo"
+          test "$tag" = "v$version" && test "$app" = "$version" && test "$metainfo" = "$version"
+          test -s "release-notes/$tag.md"
           echo "VERSION=$version" >> "$GITHUB_ENV"
+          echo "TAG=$tag" >> "$GITHUB_ENV"
       - name: Build and test the tarball
         # (meson dist writes the .sha256sum next to it)
         run: meson dist -C build --formats xztar
       - uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.TAG }}
+          target_commitish: ${{ github.sha }}
           name: Cortex ${{ env.VERSION }}
-          body_path: release-notes/${{ github.ref_name }}.md
+          body_path: release-notes/${{ env.TAG }}.md
           files: |
             build/meson-dist/cortex-${{ env.VERSION }}.tar.xz
             build/meson-dist/cortex-${{ env.VERSION }}.tar.xz.sha256sum
